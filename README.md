@@ -18,6 +18,7 @@ The program follows a multi-step algorithm:
 
 ### Project Structure
 
+```
 LEM-IN/
 ├── colony/               # Heart of the program
 │   ├── algo.go           # Main algorithm
@@ -37,6 +38,7 @@ LEM-IN/
 ├── go.mod                 
 ├── main.go               # Execution of the program
 └── README.md             
+```
 
 ---
 
@@ -62,6 +64,7 @@ Prepare an input file (e.g., `yourfile.txt`) with the following format:
 
 **Example input:**
 
+```
 9                         #Number of ants
 ##start
 start 1 24                #Starting room's name is "start" and it's coordinates are (1,24)
@@ -73,7 +76,7 @@ start-0                   #Link beetween rooms start and 0
 0-hello_world             #Link beetween rooms hello_world and 0
 start-queen               #Link beetween rooms start and queen
 queen-hello_world         #Link beetween rooms queen and hello_world
-
+```
 
 Once the file is correctly placed, type "./lem-in yourfile.txt in your terminal.
 
