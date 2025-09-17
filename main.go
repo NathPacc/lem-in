@@ -16,6 +16,7 @@ func main() {
 	filename := os.Args[1]
 	rawdatas := datas.GetDatas(filename)
 	filedatas := datas.SaveDatas(rawdatas)
+	datas.CheckErrors(&filedatas)
 	if len(filedatas.Errors) != 0 {
 		for _, err := range filedatas.Errors {
 			fmt.Println(fmt.Errorf("error : %w", err))
