@@ -85,13 +85,16 @@ Once the file is correctly placed, type "./lem-in yourfile.txt in your terminal.
 The output shows the movement of ants per turn. Each line represents one turn.  
 Each movement is formatted as: `L<AntID>-<RoomName>`
 
-Exemple :
+**Example output:**
+
+```
 L1-2
 L1-3 L2-2
 L1-end L2-3 L3-2
 L2-end L3-3 L4-2 
 L3-end L4-3
 L4-end
+```
 
 ### Author
 
