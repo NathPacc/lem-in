@@ -1,23 +1,17 @@
+// Package datas provides data loading and parsing utilities for the lem-in project.
 package datas
 
 import (
 	"bufio"
 	"errors"
+	"lem-in/modules"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 )
 
-type Datas struct {
-	NbAnts int
-	Start  string
-	End    string
-	Rooms  []string
-	Links  []string
-	Errors []error
-}
-
+// GetDatas reads the input file and returns its lines as a slice of strings.
 func GetDatas(filename string) []string {
 	file, err := os.Open("files/" + filename)
 	if err != nil {
@@ -40,8 +34,9 @@ func GetDatas(filename string) []string {
 	return results
 }
 
-func SaveDatas(filecontent []string) Datas {
-	var datas Datas
+// SaveDatas parses the file content and fills a Datas struct with ants, rooms, links, and errors.
+func SaveDatas(filecontent []string) modules.Datas {
+	var datas modules.Datas
 	var err error
 	isRoom := true
 	isStart := false
@@ -52,7 +47,7 @@ func SaveDatas(filecontent []string) Datas {
 		if line == "" {
 			continue
 		}
-		// On récupère le nombre de fourmis
+		// Parse the number of ants
 		if i == 0 {
 			datas.NbAnts, err = strconv.Atoi(line)
 			if err != nil {
@@ -62,7 +57,7 @@ func SaveDatas(filecontent []string) Datas {
 			continue
 		}
 
-		// On vérifie si l'on est en train d'ajouter le start ou le end
+		// Check if we are adding the start or end room
 		if isStart && !doubleStart && checkRoomFormat(line) == "" {
 			datas.Start = line
 			doubleStart = true
@@ -73,8 +68,8 @@ func SaveDatas(filecontent []string) Datas {
 			doubleEnd = true
 			continue
 		}
-		// On vérifie si la prochain ligne est un start ou un end
 
+		// Check for start/end markers
 		if line == "##start" {
 			if doubleStart {
 				datas.Errors = append(datas.Errors, errors.New("More than one start"))
@@ -97,6 +92,7 @@ func SaveDatas(filecontent []string) Datas {
 		if rune(line[0]) == '#' {
 			continue
 		}
+		// Parse rooms and links
 		if isRoom {
 			if checkRoomFormat(line) != "" {
 				datas.Errors = append(datas.Errors, errors.New(checkRoomFormat(line)))

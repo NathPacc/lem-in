@@ -1,15 +1,18 @@
+// Package colony contains algorithms for pathfinding and optimization in the lem-in project.
 package colony
 
 import (
+	"lem-in/modules"
 	"slices"
 	"sort"
 )
 
-func FindAllPaths(entry *Room, exit *Room, currentPath []*Room) [][]*Room {
-	copyPath := append([]*Room{}, currentPath...)
+// FindAllPaths recursively finds all possible paths from entry to exit without revisiting rooms.
+func FindAllPaths(entry *modules.Room, exit *modules.Room, currentPath []*modules.Room) [][]*modules.Room {
+	copyPath := append([]*modules.Room{}, currentPath...)
 	copyPath = append(copyPath, entry)
 
-	var allPaths [][]*Room
+	var allPaths [][]*modules.Room
 
 	if entry == exit {
 		allPaths = append(allPaths, copyPath)
@@ -27,8 +30,9 @@ func FindAllPaths(entry *Room, exit *Room, currentPath []*Room) [][]*Room {
 	return allPaths
 }
 
-func isRedundant(pathA, pathB []*Room) bool {
-	// On ne considère pas l'entrée et la sortie
+// isRedundant checks if pathA is a superset of pathB (excluding entry/exit).
+// Returns true if pathA is longer and contains all rooms of pathB.
+func isRedundant(pathA, pathB []*modules.Room) bool {
 	set := make(map[string]bool)
 	for _, room := range pathB[1 : len(pathB)-1] {
 		set[room.Name] = true
@@ -40,12 +44,12 @@ func isRedundant(pathA, pathB []*Room) bool {
 		}
 	}
 
-	// Si pathA est plus long, alors il est redondant
 	return len(pathA) > len(pathB)
 }
 
-func OptimizePaths(paths [][]*Room) [][]*Room {
-	var results [][]*Room
+// OptimizePaths removes redundant paths from the list of all paths.
+func OptimizePaths(paths [][]*modules.Room) [][]*modules.Room {
+	var results [][]*modules.Room
 	for i, pathA := range paths {
 		redundant := false
 		for j, pathB := range paths {
@@ -61,13 +65,14 @@ func OptimizePaths(paths [][]*Room) [][]*Room {
 	return results
 }
 
-func IndepPaths(paths [][]*Room) [][][]*Room {
-	var allSets [][][]*Room
+// IndepPaths finds all sets of independent (non-overlapping) paths.
+func IndepPaths(paths [][]*modules.Room) [][][]*modules.Room {
+	var allSets [][][]*modules.Room
 
-	var explore func(current [][]*Room, start int)
-	explore = func(current [][]*Room, start int) {
+	var explore func(current [][]*modules.Room, start int)
+	explore = func(current [][]*modules.Room, start int) {
 		if len(current) > 0 {
-			// Vérifie que ce groupe n'existe pas déjà
+			// Check if this group already exists
 			duplicate := false
 			for _, existing := range allSets {
 				if sameSet(existing, current) {
@@ -76,7 +81,7 @@ func IndepPaths(paths [][]*Room) [][][]*Room {
 				}
 			}
 			if !duplicate {
-				allSets = append(allSets, append([][]*Room{}, current...))
+				allSets = append(allSets, append([][]*modules.Room{}, current...))
 			}
 		}
 
@@ -94,11 +99,12 @@ func IndepPaths(paths [][]*Room) [][][]*Room {
 		}
 	}
 
-	explore([][]*Room{}, 0)
+	explore([][]*modules.Room{}, 0)
 	return allSets
 }
 
-func areIndep(pathA, pathB []*Room) bool {
+// areIndep returns true if two paths are independent (no shared rooms except entry/exit).
+func areIndep(pathA, pathB []*modules.Room) bool {
 	set1 := make(map[string]bool)
 	set2 := make(map[string]bool)
 
@@ -117,7 +123,8 @@ func areIndep(pathA, pathB []*Room) bool {
 	return true
 }
 
-func sameSet(a, b [][]*Room) bool {
+// sameSet checks if two sets of paths are equivalent (same paths, any order).
+func sameSet(a, b [][]*modules.Room) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -144,7 +151,8 @@ func sameSet(a, b [][]*Room) bool {
 	return true
 }
 
-func samePath(a, b []*Room) bool {
+// samePath checks if two paths are identical (same rooms in order).
+func samePath(a, b []*modules.Room) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -156,7 +164,9 @@ func samePath(a, b []*Room) bool {
 	return true
 }
 
-func calculateTime(nbAnt int, paths [][]*Room) (int, []int) {
+// calculateTime distributes ants across paths to minimize the total time.
+// Returns the max time and the number of ants per path.
+func calculateTime(nbAnt int, paths [][]*modules.Room) (int, []int) {
 	sort.Slice(paths, func(i, j int) bool {
 		return len(paths[i]) < len(paths[j])
 	})
@@ -188,7 +198,9 @@ func calculateTime(nbAnt int, paths [][]*Room) (int, []int) {
 	return maxTime, antsPerPath
 }
 
-func Resolve(nbAnt int, colony []*Room) [][]*Room {
+// Resolve finds the best set of independent paths for the given number of ants.
+// Returns the set of paths that minimizes the total time.
+func Resolve(nbAnt int, colony []*modules.Room) [][]*modules.Room {
 	paths := OptimizePaths(FindAllPaths(colony[0], colony[len(colony)-1], nil))
 	indepPaths := IndepPaths(paths)
 	bestset := indepPaths[0]

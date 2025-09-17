@@ -2,12 +2,15 @@ package datas
 
 import (
 	"errors"
+	"lem-in/modules"
 	"slices"
 	"strconv"
 	"strings"
 )
 
-func CheckErrors(datas *Datas) {
+// CheckErrors runs all error checks on the provided datas structure.
+// It checks ants count, room and link formats, and duplicates.
+func CheckErrors(datas *modules.Datas) {
 	if datas.NbAnts <= 0 {
 		datas.Errors = append(datas.Errors, errors.New("Bad format for number of ant"))
 	}
@@ -19,7 +22,8 @@ func CheckErrors(datas *Datas) {
 	}
 }
 
-func checkExtrimities(datas *Datas) {
+// checkExtrimities checks the format of the start and end rooms.
+func checkExtrimities(datas *modules.Datas) {
 	if checkRoomFormat(datas.Start) != "" && datas.Start != "" {
 		datas.Errors = append(datas.Errors, errors.New("Bad format for start"))
 	}
@@ -28,7 +32,9 @@ func checkExtrimities(datas *Datas) {
 	}
 }
 
-func checkRooms(datas *Datas) {
+// checkRooms checks the format of each room string in datas.Rooms.
+// Each room should have three fields, and the last two should be integers.
+func checkRooms(datas *modules.Datas) {
 	for _, roomstr := range datas.Rooms {
 		roomtab := strings.Fields(roomstr)
 		if len(roomtab) != 3 {
@@ -44,7 +50,9 @@ func checkRooms(datas *Datas) {
 	}
 }
 
-func checkLinks(datas *Datas) {
+// checkLinks checks the format and validity of each link in datas.Links.
+// It ensures links are between two different, existing rooms.
+func checkLinks(datas *modules.Datas) {
 	if datas.Start == "" || datas.End == "" {
 		return
 	}
@@ -60,6 +68,7 @@ func checkLinks(datas *Datas) {
 		}
 		leftExist := false
 		rightExist := false
+		// Check if both rooms in the link exist in the rooms list or as start/end
 		for _, roomstr := range datas.Rooms {
 			if strings.Fields(roomstr)[0] == left || strings.Fields(datas.Start)[0] == left || strings.Fields(datas.End)[0] == left {
 				leftExist = true
@@ -75,20 +84,24 @@ func checkLinks(datas *Datas) {
 	}
 }
 
+// checkRoomFormat checks if a room line is valid (3 fields, last two are integers).
+// Returns an error string if invalid, or empty string if valid.
 func checkRoomFormat(line string) string {
 	parts := strings.Fields(line)
 	if len(parts) != 3 {
 		return "Bad format : comment without # : " + line
 	}
 	_, err1 := strconv.Atoi(parts[1])
-	_, err2 := strconv.Atoi(parts[1])
+	_, err2 := strconv.Atoi(parts[2])
 	if err1 != nil || err2 != nil {
 		return "Bad format for room : " + line
 	}
 	return ""
 }
 
-func checkDuplicates(datas *Datas) {
+// checkDuplicates checks for duplicate room names in datas.Rooms, Start, and End.
+// Adds errors for any duplicates found.
+func checkDuplicates(datas *modules.Datas) {
 	var duplicatesIndex []int
 	for i, room := range datas.Rooms {
 		roompart := strings.Fields(room)
@@ -101,16 +114,18 @@ func checkDuplicates(datas *Datas) {
 				}
 			}
 		}
+		// Check for duplicates with start room
 		if datas.Start != "" {
 			startroom := strings.Fields(datas.Start)[0]
 			if roompart[0] == startroom {
 				datas.Errors = append(datas.Errors, errors.New("Duplicate for rooms "+room+" and "+datas.Start))
 			}
 		}
+		// Check for duplicates with end room
 		if datas.End != "" {
 			endroom := strings.Fields(datas.End)[0]
 			if roompart[0] == endroom {
-				datas.Errors = append(datas.Errors, errors.New("Duplicate for rooms "+room+" and "+datas.Start))
+				datas.Errors = append(datas.Errors, errors.New("Duplicate for rooms "+room+" and "+datas.End))
 			}
 		}
 	}

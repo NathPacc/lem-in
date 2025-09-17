@@ -1,30 +1,22 @@
+// Package colony provides setup utilities for building the colony structure from input data.
 package colony
 
 import (
-	"lem-in/datas"
+	"lem-in/modules"
 	"strconv"
 	"strings"
 )
 
-type Point struct {
-	X int
-	Y int
-}
-
-type Room struct {
-	Name        string
-	Neighbours  []*Room
-	Coordinates Point
-}
-
-func addLink(room1, room2 *Room) {
+// addLink creates a bidirectional link between two rooms if not already linked.
+func addLink(room1, room2 *modules.Room) {
 	if !containsRoom(room1.Neighbours, room2) {
 		room1.Neighbours = append(room1.Neighbours, room2)
 		room2.Neighbours = append(room2.Neighbours, room1)
 	}
 }
 
-func containsRoom(rooms []*Room, target *Room) bool {
+// containsRoom checks if a room slice contains a room with the same name as target.
+func containsRoom(rooms []*modules.Room, target *modules.Room) bool {
 	for _, r := range rooms {
 		if r.Name == target.Name {
 			return true
@@ -33,37 +25,41 @@ func containsRoom(rooms []*Room, target *Room) bool {
 	return false
 }
 
-func CreatRooms(datas datas.Datas) []*Room {
-	var rooms []*Room
+// CreatRooms creates Room structs for the start, end, and all intermediate rooms from input data.
+func CreatRooms(datas modules.Datas) []*modules.Room {
+	var rooms []*modules.Room
 	var tempX int
 	var tempY int
+	// Create entry room (start)
 	tempX, _ = strconv.Atoi(strings.Fields(datas.Start)[1])
 	tempY, _ = strconv.Atoi(strings.Fields(datas.Start)[2])
-	entry := Room{
+	entry := modules.Room{
 		Name: strings.Fields(datas.Start)[0],
-		Coordinates: Point{
+		Coordinates: modules.Point{
 			X: tempX,
 			Y: tempY,
 		},
 	}
 
+	// Create exit room (end)
 	tempX, _ = strconv.Atoi(strings.Fields(datas.End)[1])
 	tempY, _ = strconv.Atoi(strings.Fields(datas.End)[2])
-	exit := Room{
+	exit := modules.Room{
 		Name: strings.Fields(datas.End)[0],
-		Coordinates: Point{
+		Coordinates: modules.Point{
 			X: tempX,
 			Y: tempY,
 		},
 	}
 	rooms = append(rooms, &entry)
+	// Create intermediate rooms
 	for _, room := range datas.Rooms {
 		tempName := strings.Fields(room)[0]
 		tempX, _ = strconv.Atoi(strings.Fields(room)[1])
 		tempY, _ = strconv.Atoi(strings.Fields(room)[2])
-		temp := Room{
+		temp := modules.Room{
 			Name: tempName,
-			Coordinates: Point{
+			Coordinates: modules.Point{
 				X: tempX,
 				Y: tempY,
 			},
@@ -74,11 +70,12 @@ func CreatRooms(datas datas.Datas) []*Room {
 	return rooms
 }
 
-func CreatColony(datas datas.Datas, rooms []*Room) {
+// CreatColony links rooms together based on the links in the input data.
+func CreatColony(datas modules.Datas, rooms []*modules.Room) {
 	for _, link := range datas.Links {
 		left, right, _ := strings.Cut(link, "-")
-		var leftRoom *Room
-		var rightRoom *Room
+		var leftRoom *modules.Room
+		var rightRoom *modules.Room
 		for _, room := range rooms {
 			if room.Name == left {
 				leftRoom = room
