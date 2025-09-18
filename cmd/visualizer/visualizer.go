@@ -19,19 +19,21 @@ import (
 var antSprite *ebiten.Image
 var dirt *ebiten.Image
 
+// Load ant and dirt sprites, log error if loading fails
 func init() {
 	img, _, err := ebitenutil.NewImageFromFile("cmd/visualizer/assets/Ants.png")
 	if err != nil {
-		log.Fatal("Erreur de chargement du sprite de fourmi :", err)
+		log.Fatal("Error loading ant sprite:", err)
 	}
 	antSprite = img
 	img, _, err = ebitenutil.NewImageFromFile("cmd/visualizer/assets/dirt.png")
 	if err != nil {
-		log.Fatal("Erreur de chargement du sprite de dirt :", err)
+		log.Fatal("Error loading dirt sprite:", err)
 	}
 	dirt = img
 }
 
+// Visualization holds the state for the graphical simulation.
 type Visualization struct {
 	Rooms       []*modules.Room
 	Ants        []*modules.Ant
@@ -59,6 +61,7 @@ func (g *Visualization) Update() error {
 	return nil
 }
 
+// ApplyMovements parses the movement lines and returns the turns and all ants.
 func ApplyMovements(lines []string, rooms []*modules.Room) ([][]*modules.Ant, []*modules.Ant) {
 	var turns [][]*modules.Ant
 	antMap := make(map[string]*modules.Ant)
@@ -96,7 +99,7 @@ func ApplyMovements(lines []string, rooms []*modules.Room) ([][]*modules.Ant, []
 						ant.Active = true
 					}
 
-					// Cloner pour ce tour
+					// Clone for this turn
 					cloned := &modules.Ant{
 						Id:          ant.Id,
 						LastRoom:    ant.LastRoom,
@@ -112,7 +115,7 @@ func ApplyMovements(lines []string, rooms []*modules.Room) ([][]*modules.Ant, []
 		turns = append(turns, turn)
 	}
 
-	// Extraire la slice globale des fourmis
+	// Extract the global slice of ants
 	var ants []*modules.Ant
 	for _, ant := range antMap {
 		ants = append(ants, ant)
@@ -121,27 +124,28 @@ func ApplyMovements(lines []string, rooms []*modules.Room) ([][]*modules.Ant, []
 	return turns, ants
 }
 
+// AntMovement draws an ant moving from one room to another, with smooth oscillation and rotation.
 func AntMovement(screen *ebiten.Image, from, to *modules.Room, progress float64, sprite *ebiten.Image) {
 	if from == nil || to == nil || sprite == nil {
 		return
 	}
 
-	// Position interpolée
+	// Interpolated position
 	x := (1-progress)*float64(from.Coordinates.X) + progress*float64(to.Coordinates.X)
 	y := (1-progress)*float64(from.Coordinates.Y) + progress*float64(to.Coordinates.Y)
 
-	// Angle de direction
+	// Direction angle
 	dx := float64(to.Coordinates.X - from.Coordinates.X)
 	dy := float64(to.Coordinates.Y - from.Coordinates.Y)
 	angle := math.Atan2(dy, dx)
 
-	// Oscillation douce
+	// Smooth oscillation
 	oscillation := math.Sin(progress*10*math.Pi) * (5 * math.Pi / 180) // ±5°
 
-	// Rotation finale
+	// Final rotation
 	totalRotation := angle + oscillation
 
-	// Dessin avec rotation
+	// Draw with rotation
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(sprite.Bounds().Dx())/2, -float64(sprite.Bounds().Dy())/2)
 	op.GeoM.Rotate(totalRotation)
@@ -149,8 +153,9 @@ func AntMovement(screen *ebiten.Image, from, to *modules.Room, progress float64,
 	screen.DrawImage(sprite, op)
 }
 
+// Draw renders the current state of the visualization to the screen.
 func (g *Visualization) Draw(screen *ebiten.Image) {
-	// Fond marron
+	// Brown background
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(
 		float64(screen.Bounds().Dx())/float64(dirt.Bounds().Dx()),
@@ -158,7 +163,7 @@ func (g *Visualization) Draw(screen *ebiten.Image) {
 	)
 	screen.DrawImage(dirt, op)
 
-	// Dessiner les liens
+	// Draw links
 	for _, room := range g.Rooms {
 		for _, neighbor := range room.Neighbours {
 			ebitenutil.DrawLine(
@@ -172,13 +177,13 @@ func (g *Visualization) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	// Dessiner les salles
+	// Draw rooms
 	for i, room := range g.Rooms {
 		var col color.Color = color.White
 		if i == 0 {
-			col = color.RGBA{0, 255, 0, 255} // Vert
+			col = color.RGBA{0, 255, 0, 255} // Green
 		} else if i == len(g.Rooms)-1 {
-			col = color.RGBA{255, 0, 0, 255} // Rouge
+			col = color.RGBA{255, 0, 0, 255} // Red
 		}
 		ebitenutil.DrawRect(screen, float64(room.Coordinates.X)-10, float64(room.Coordinates.Y)-10, 20, 20, col)
 		ebitenutil.DebugPrintAt(screen, room.Name, room.Coordinates.X+12, room.Coordinates.Y-10)
@@ -190,14 +195,15 @@ func (g *Visualization) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	tourText := fmt.Sprintf("Tour : %d / %d", g.CurrentTurn+1, len(g.Turns)+1)
-	ebitenutil.DebugPrintAt(screen, tourText, 700, 10)
+	turnText := fmt.Sprintf("Turn: %d / %d", g.CurrentTurn+1, len(g.Turns)+1)
+	ebitenutil.DebugPrintAt(screen, turnText, 700, 10)
 }
 
 func (g *Visualization) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return 800, 600
 }
 
+// centerColony recenters and scales the colony to fit within the screen, applying a margin.
 func centerColony(rooms []*modules.Room, screenWidth, screenHeight int, margin int) {
 	minX, minY := 99999, 99999
 	maxX, maxY := 0, 0
@@ -220,26 +226,27 @@ func centerColony(rooms []*modules.Room, screenWidth, screenHeight int, margin i
 	colonyWidth := maxX - minX
 	colonyHeight := maxY - minY
 
-	// Appliquer la marge en réduisant l’espace disponible
+	// Apply margin by reducing available space
 	availableWidth := screenWidth - 2*margin
 	availableHeight := screenHeight - 2*margin
 
-	// Calcul du facteur d’échelle pour que tout rentre dans la fenêtre
+	// Calculate scale factor to fit colony in window
 	scaleX := float64(availableWidth) / float64(colonyWidth)
 	scaleY := float64(availableHeight) / float64(colonyHeight)
 	scale := math.Min(scaleX, scaleY)
 
-	// Appliquer le centrage et la marge
+	// Apply centering and margin
 	for _, r := range rooms {
 		r.Coordinates.X = int((float64(r.Coordinates.X-minX) * scale)) + margin
 		r.Coordinates.Y = int((float64(r.Coordinates.Y-minY) * scale)) + margin
 	}
 }
 
+// main reads input, parses instructions and movements, and runs the visualization.
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	var instructions []string
-	var mouvements []string
+	var movements []string
 	instructionsDone := false
 
 	for scanner.Scan() {
@@ -249,7 +256,7 @@ func main() {
 		}
 
 		if instructionsDone {
-			mouvements = append(mouvements, line)
+			movements = append(movements, line)
 		} else {
 			instructions = append(instructions, line)
 		}
@@ -269,8 +276,8 @@ func main() {
 	rooms := colony.CreatRooms(filedatas)
 	colony.CreatColony(filedatas, rooms)
 	centerColony(rooms, 800, 600, 50)
-	turns, ants := ApplyMovements(mouvements, rooms)
-	Visualization := &Visualization{
+	turns, ants := ApplyMovements(movements, rooms)
+	visualization := &Visualization{
 		Rooms:       rooms,
 		Turns:       turns,
 		Ants:        ants,
@@ -279,7 +286,7 @@ func main() {
 
 	ebiten.SetWindowSize(800, 600)
 	ebiten.SetWindowTitle("Lem-in Visualizer")
-	if err := ebiten.RunGame(Visualization); err != nil {
+	if err := ebiten.RunGame(visualization); err != nil {
 		log.Fatal(err)
 	}
 }
