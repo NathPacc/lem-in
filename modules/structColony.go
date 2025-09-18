@@ -13,3 +13,12 @@ type Room struct {
 	Neighbours  []*Room
 	Coordinates Point
 }
+
+type Ant struct {
+	Id          string
+	LastRoom    *Room
+	CurrentRoom *Room
+	X, Y        float64
+	T           float64
+	Active      bool
+}

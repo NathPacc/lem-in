@@ -88,3 +88,14 @@ func CreatColony(datas modules.Datas, rooms []*modules.Room) {
 		}
 	}
 }
+
+// For visualizer
+
+func GetRoomByName(name string, rooms []*modules.Room) *modules.Room {
+	for _, r := range rooms {
+		if r.Name == name {
+			return r
+		}
+	}
+	return nil
+}
