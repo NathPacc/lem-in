@@ -80,14 +80,36 @@ func OptimizePaths(paths [][]*modules.Room) [][]*modules.Room {
 	return results
 }
 
-// IndepPaths finds all sets of independent (non-overlapping) paths.
+// Récupère toutes les combinaisons de chemin indépendants entre eux (ne partagent aucune salle en dehors de l'entrée/sortie)
 func IndepPaths(paths [][]*modules.Room) [][][]*modules.Room {
 	var allSets [][][]*modules.Room
 
 	var explore func(current [][]*modules.Room, start int)
+	// explore est une fonction récursive qui va construire les combinaisons et les ajouter à allSets lorsqu'elles sont terminées
+	// Elle est imbriquée dans IndepPaths pour simplifier la gestion de ses arguments.
 	explore = func(current [][]*modules.Room, start int) {
-		if len(current) > 0 {
-			// Check if this group already exists
+		canExtend := false
+
+		for i := start; i < len(paths); i++ {
+			compatible := true
+			for _, p := range current {
+				// Test l'indépendance entre chaque chemin et l'ensemble des chemins de la combinaison actuelle
+				if !areIndep(p, paths[i]) {
+					compatible = false
+					break
+				}
+			}
+			// Si le chemin est bien indépendant avec l'ensemble des chemins de la combinaison actuelle, on l'ajoute à la combinaison
+			if compatible {
+				// A chaque fois qu'on a ajouté un chemin, on part du principe que la combinaison peut être étendue
+				canExtend = true
+				explore(append(current, paths[i]), i+1)
+			}
+		}
+
+		// Le dernier tour du for n'a pas trouvé de chemin compatible donc canExtand est false
+		// La combinaison ne peut plus être étendu, on regarde si il n'existe pas déjà dans notre liste
+		if !canExtend && len(current) > 0 {
 			duplicate := false
 			for _, existing := range allSets {
 				if sameSet(existing, current) {
@@ -99,26 +121,13 @@ func IndepPaths(paths [][]*modules.Room) [][][]*modules.Room {
 				allSets = append(allSets, append([][]*modules.Room{}, current...))
 			}
 		}
-
-		for i := start; i < len(paths); i++ {
-			compatible := true
-			for _, p := range current {
-				if !areIndep(p, paths[i]) {
-					compatible = false
-					break
-				}
-			}
-			if compatible {
-				explore(append(current, paths[i]), i+1)
-			}
-		}
 	}
-
+	// On appelle explore avec une combinaison vide pour commencer.
 	explore([][]*modules.Room{}, 0)
 	return allSets
 }
 
-// areIndep returns true if two paths are independent (no shared rooms except entry/exit).
+// Vérifie que deux chemins ne partagent pas de salle autre que start et end
 func areIndep(pathA, pathB []*modules.Room) bool {
 	set1 := make(map[string]bool)
 	set2 := make(map[string]bool)
@@ -138,7 +147,7 @@ func areIndep(pathA, pathB []*modules.Room) bool {
 	return true
 }
 
-// sameSet checks if two sets of paths are equivalent (same paths, any order).
+// Vérifie que deux combinaisons ne contiennent pas les mêmes chemins (pour éviter les doublons dont les chemins sont dans un ordre différent)
 func sameSet(a, b [][]*modules.Room) bool {
 	if len(a) != len(b) {
 		return false
@@ -166,7 +175,7 @@ func sameSet(a, b [][]*modules.Room) bool {
 	return true
 }
 
-// samePath checks if two paths are identical (same rooms in order).
+// Vérifie que deux chemins ne soient pas identiques.
 func samePath(a, b []*modules.Room) bool {
 	if len(a) != len(b) {
 		return false
@@ -179,29 +188,37 @@ func samePath(a, b []*modules.Room) bool {
 	return true
 }
 
-// calculateTime distributes ants across paths to minimize the total time.
-// Returns the max time and the number of ants per path.
+// Calcule le temps de résolution d'une combinaison de chemins
 func calculateTime(nbAnt int, paths [][]*modules.Room) (int, []int) {
+	// Trie les chemins par longueur
 	sort.Slice(paths, func(i, j int) bool {
 		return len(paths[i]) < len(paths[j])
 	})
 
+	// Enregistre le nombre de fourmis à envoyer dans chaque chemin
 	antsPerPath := make([]int, len(paths))
 
+	// Tant qu'il reste des fourmis
 	for nbAnt > 0 {
+		// On regarde quelle chemin est le plus rapide pour cette fourmi là
 		bestIndex := 0
 		bestTime := len(paths[0]) + antsPerPath[0]
+		// Pour chaque chemin, on compare le temps de parcours
 		for i := 1; i < len(paths); i++ {
+			// Le temps de parcours se calcule à partir de la longueur du chemin et le nombre de fourmi déjà envoyé dedans
 			t := len(paths[i]) + antsPerPath[i]
+			// Si t est meilleur que le bestTime jusque maintenant, on enregistre son index et son temps
 			if t < bestTime {
 				bestTime = t
 				bestIndex = i
 			}
 		}
+		// On envoie la fourmi dans ce chemin
 		antsPerPath[bestIndex]++
 		nbAnt--
 	}
 
+	// On compare le temps utilisé par chaque chemin pour savoir quand la dernière fourmi arrivera
 	maxTime := 0
 	for i := range paths {
 		t := len(paths[i]) + antsPerPath[i] - 1
@@ -213,14 +230,15 @@ func calculateTime(nbAnt int, paths [][]*modules.Room) (int, []int) {
 	return maxTime, antsPerPath
 }
 
-// Resolve finds the best set of independent paths for the given number of ants.
-// Returns the set of paths that minimizes the total time.
+// Calcule le temps de résolution de toutes les combinaisons d'une colonie et renvoie la plus rapide
 func Resolve(nbAnt int, colony []*modules.Room) [][]*modules.Room {
 	paths := OptimizePaths(FindAllPaths(colony[0], colony[len(colony)-1], nil))
 	indepPaths := IndepPaths(paths)
 	bestset := indepPaths[0]
+	// On initialise le meilleur temps
 	bestTime, _ := calculateTime(nbAnt, indepPaths[0])
 	for _, set := range indepPaths {
+		// Si une combinaison de chemin est plus rapide à traverser, on la sauvegarde
 		time, _ := calculateTime(nbAnt, set)
 		if time < bestTime {
 			bestset = set
