@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// addLink creates a bidirectional link between two rooms if not already linked.
+// Créer le lien entre deux salles déjà existantes
 func addLink(room1, room2 *modules.Room) {
 	if !containsRoom(room1.Neighbours, room2) {
 		room1.Neighbours = append(room1.Neighbours, room2)
@@ -15,7 +15,7 @@ func addLink(room1, room2 *modules.Room) {
 	}
 }
 
-// containsRoom checks if a room slice contains a room with the same name as target.
+// Vérifie si une salle est présente dans un chemin/une slice de Rooms
 func containsRoom(rooms []*modules.Room, target *modules.Room) bool {
 	for _, r := range rooms {
 		if r.Name == target.Name {
@@ -25,12 +25,12 @@ func containsRoom(rooms []*modules.Room, target *modules.Room) bool {
 	return false
 }
 
-// CreatRooms creates Room structs for the start, end, and all intermediate rooms from input data.
+// Créer l'ensemble des salles, sans les liens, à partir des datas.
 func CreatRooms(datas modules.Datas) []*modules.Room {
 	var rooms []*modules.Room
 	var tempX int
 	var tempY int
-	// Create entry room (start)
+	// On créé la salle d'entrée
 	tempX, _ = strconv.Atoi(strings.Fields(datas.Start)[1])
 	tempY, _ = strconv.Atoi(strings.Fields(datas.Start)[2])
 	entry := modules.Room{
@@ -41,7 +41,7 @@ func CreatRooms(datas modules.Datas) []*modules.Room {
 		},
 	}
 
-	// Create exit room (end)
+	// On créé la salle de sortie
 	tempX, _ = strconv.Atoi(strings.Fields(datas.End)[1])
 	tempY, _ = strconv.Atoi(strings.Fields(datas.End)[2])
 	exit := modules.Room{
@@ -51,8 +51,9 @@ func CreatRooms(datas modules.Datas) []*modules.Room {
 			Y: tempY,
 		},
 	}
+	// On place l'entrée au début de la slice qu'on va retourner
 	rooms = append(rooms, &entry)
-	// Create intermediate rooms
+	// On créé et ajoute toutes les salles intermédiaires
 	for _, room := range datas.Rooms {
 		tempName := strings.Fields(room)[0]
 		tempX, _ = strconv.Atoi(strings.Fields(room)[1])
@@ -66,11 +67,12 @@ func CreatRooms(datas modules.Datas) []*modules.Room {
 		}
 		rooms = append(rooms, &temp)
 	}
+	// On ajoute la salle de sortie à la fin de la liste
 	rooms = append(rooms, &exit)
 	return rooms
 }
 
-// CreatColony links rooms together based on the links in the input data.
+// Créer l'ensemble des liens d'une colonie (dont les salles ont été créés)
 func CreatColony(datas modules.Datas, rooms []*modules.Room) {
 	for _, link := range datas.Links {
 		left, right, _ := strings.Cut(link, "-")
@@ -89,8 +91,7 @@ func CreatColony(datas modules.Datas, rooms []*modules.Room) {
 	}
 }
 
-// For visualizer
-
+// Trouve une salle par son nom (utilsé pour visualizer uniquement)
 func GetRoomByName(name string, rooms []*modules.Room) *modules.Room {
 	for _, r := range rooms {
 		if r.Name == name {

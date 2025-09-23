@@ -7,31 +7,44 @@ import (
 	"sort"
 )
 
-// FindAllPaths recursively finds all possible paths from entry to exit without revisiting rooms.
-func FindAllPaths(entry *modules.Room, exit *modules.Room, currentPath []*modules.Room) [][]*modules.Room {
+func FindAllPaths(room *modules.Room, exit *modules.Room, currentPath []*modules.Room) [][]*modules.Room {
+	// Copie le chemin emprunter jusqu'à la salle actuelle pour gérer correctement les modifications de slices.
 	copyPath := append([]*modules.Room{}, currentPath...)
-	copyPath = append(copyPath, entry)
+	// On ajoute la salle actuelle
+	copyPath = append(copyPath, room)
 
+	// Stock tous les chemins valides reliant cette salle à la sortie
 	var allPaths [][]*modules.Room
 
-	if entry == exit {
+	// Si la salle actuelle est la sortie, on ajoute le chemin qu'on a emprunter pour l'atteindre
+	if room == exit {
 		allPaths = append(allPaths, copyPath)
 		return allPaths
 	}
 
-	for _, neighbour := range entry.Neighbours {
+	// Pour chaque voisin de notre salle
+	for _, neighbour := range room.Neighbours {
+		// Si la salle a déjà été visitée, on l'ignore (sinon on tourne en rond)
 		if slices.Contains(copyPath, neighbour) {
 			continue
 		}
+		// On récupère récursivement tous les chemins qui relient ce voisin à la sortie
 		subPaths := FindAllPaths(neighbour, exit, copyPath)
+		// Si aucun chemin ne relie ce voisin à la sortie, on ignore cette direction (gestion des impasses)
+		if subPaths == nil {
+			continue
+		}
+		// Ajoute tous les chemins qui ont atteins la sortie depuis cette salle
+		// !!! subPaths peut vous induire en erreur !!!
+		// !!! Lorsque l'on atteint le exit, la fonction renvoie le chemin depuis le tout début !!!
+		// !!! En effet, on append copyPath à chaque fois qu'on arrive à exit, mais copyPath est le chemin réalisé jusqu'à maintenant !!!
+		// !!! En résumé, subPath renvoie tous les chemins qui atteignent la fin en ayant le même début !!!
 		allPaths = append(allPaths, subPaths...)
 	}
-
 	return allPaths
 }
 
-// isRedundant checks if pathA is a superset of pathB (excluding entry/exit).
-// Returns true if pathA is longer and contains all rooms of pathB.
+// Vérifie si un chemin A est inclus dans un chemin B, le rendant inutile
 func isRedundant(pathA, pathB []*modules.Room) bool {
 	set := make(map[string]bool)
 	for _, room := range pathB[1 : len(pathB)-1] {
@@ -47,17 +60,19 @@ func isRedundant(pathA, pathB []*modules.Room) bool {
 	return len(pathA) > len(pathB)
 }
 
-// OptimizePaths removes redundant paths from the list of all paths.
+// Élimine les chemins "redondants", c'est à dire tous les chemins incluant un chemin valide (ex : A -> B -> C est redondant avec A -> C)
 func OptimizePaths(paths [][]*modules.Room) [][]*modules.Room {
 	var results [][]*modules.Room
 	for i, pathA := range paths {
 		redundant := false
 		for j, pathB := range paths {
+			// Si un chemin est redondant, on ne le compare plus avec le reste et on ne le recopie pas
 			if i != j && isRedundant(pathA, pathB) {
 				redundant = true
 				break
 			}
 		}
+		// Si un chemin n'est pas redondant avec tous les autres, on le recopie.
 		if !redundant {
 			results = append(results, pathA)
 		}

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// GetDatas reads the input file and returns its lines as a slice of strings.
+// Stock les instructions lignes par lignes
 func GetDatas(filename string) []string {
 	file, err := os.Open("files/" + filename)
 	if err != nil {
@@ -34,20 +34,23 @@ func GetDatas(filename string) []string {
 	return results
 }
 
-// SaveDatas parses the file content and fills a Datas struct with ants, rooms, links, and errors.
+// Répartie les instructions dans la struct data
 func SaveDatas(filecontent []string) modules.Datas {
 	var datas modules.Datas
 	var err error
+	// isRoom permet de savoir si l'on est sur une ligne qui définie une salle ou non
 	isRoom := true
+	// isStart, doubleStart et leurs cousins pour end servent à trouver le start/end et vérifier son existence unique.
 	isStart := false
 	doubleStart := false
 	doubleEnd := false
 	isEnd := false
 	for i, line := range filecontent {
+		// Si une ligne est vide on l'ignore
 		if line == "" {
 			continue
 		}
-		// Parse the number of ants
+		// La première ligne est forcément le nombre de fourmis. On vérifira plus tard que le nombre est logique.
 		if i == 0 {
 			datas.NbAnts, err = strconv.Atoi(line)
 			if err != nil {
@@ -57,7 +60,7 @@ func SaveDatas(filecontent []string) modules.Datas {
 			continue
 		}
 
-		// Check if we are adding the start or end room
+		// Vérifie que start/end a bien été rencontré, n'est pas en double et que la ligne a un format valide pour une salle.
 		if isStart && !doubleStart && checkRoomFormat(line) == "" {
 			datas.Start = line
 			doubleStart = true
@@ -69,7 +72,7 @@ func SaveDatas(filecontent []string) modules.Datas {
 			continue
 		}
 
-		// Check for start/end markers
+		// Localise les marqueurs start et end.
 		if line == "##start" {
 			if doubleStart {
 				datas.Errors = append(datas.Errors, errors.New("More than one start"))
@@ -86,23 +89,27 @@ func SaveDatas(filecontent []string) modules.Datas {
 			}
 			continue
 		}
-		if strings.Contains(line, "-") {
-			isRoom = false
-		}
+
+		// Si la ligne commence par un #, c'est un commentaire qu'on ignore
 		if rune(line[0]) == '#' {
 			continue
 		}
-		// Parse rooms and links
+
+		// Lorsque l'on croise un tiret, on entre dans la définition des liens.
+		if strings.Contains(line, "-") {
+			isRoom = false
+		}
+
+		// Si l'on est encore sur une ligne de room
 		if isRoom {
+			// Si la ligne n'est pas valide, on ajoute une erreur
 			if checkRoomFormat(line) != "" {
 				datas.Errors = append(datas.Errors, errors.New(checkRoomFormat(line)))
 				continue
 			}
-			if checkRoomFormat(line) == "comment" {
-				continue
-			}
 			datas.Rooms = append(datas.Rooms, line)
 			continue
+			// Si ce n'est pas une ligne de salle, alors on la stock comme un lien.
 		} else if !isRoom {
 			if strings.Contains(line, "-") {
 				datas.Links = append(datas.Links, line)
@@ -110,6 +117,7 @@ func SaveDatas(filecontent []string) modules.Datas {
 			continue
 		}
 	}
+	// Si doubleEnd/doubleStart est resté false, c'est qu'aucun start ou aucun end n'a été rencontré.
 	if !doubleEnd {
 		datas.Errors = append(datas.Errors, errors.New("No end"))
 	}

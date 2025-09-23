@@ -8,8 +8,7 @@ import (
 	"strings"
 )
 
-// CheckErrors runs all error checks on the provided datas structure.
-// It checks ants count, room and link formats, and duplicates.
+// Réunis tous les checks d'erreurs.
 func CheckErrors(datas *modules.Datas) {
 	if datas.NbAnts <= 0 {
 		datas.Errors = append(datas.Errors, errors.New("Bad format for number of ant"))
@@ -22,7 +21,7 @@ func CheckErrors(datas *modules.Datas) {
 	}
 }
 
-// checkExtrimities checks the format of the start and end rooms.
+// Vérifie qu'il y a bien un start et un end valides
 func checkExtrimities(datas *modules.Datas) {
 	if checkRoomFormat(datas.Start) != "" && datas.Start != "" {
 		datas.Errors = append(datas.Errors, errors.New("Bad format for start"))
@@ -32,8 +31,7 @@ func checkExtrimities(datas *modules.Datas) {
 	}
 }
 
-// checkRooms checks the format of each room string in datas.Rooms.
-// Each room should have three fields, and the last two should be integers.
+// Vérifie que tous les strings stockés dans Rooms sont au format attendu pour définir une salle.
 func checkRooms(datas *modules.Datas) {
 	for _, roomstr := range datas.Rooms {
 		roomtab := strings.Fields(roomstr)
@@ -50,13 +48,13 @@ func checkRooms(datas *modules.Datas) {
 	}
 }
 
-// checkLinks checks the format and validity of each link in datas.Links.
-// It ensures links are between two different, existing rooms.
+// Vérifie que tous les strings stockés dans Links sont au format attendu pour définir un lien
 func checkLinks(datas *modules.Datas) {
 	if datas.Start == "" || datas.End == "" {
 		return
 	}
 	for _, link := range datas.Links {
+		// Vérifie que le string est bien au format "Nom1-Nom2"
 		left, right, found := strings.Cut(link, "-")
 		if !found {
 			datas.Errors = append(datas.Errors, errors.New("Bad format for the following link : "+link))
@@ -68,7 +66,7 @@ func checkLinks(datas *modules.Datas) {
 		}
 		leftExist := false
 		rightExist := false
-		// Check if both rooms in the link exist in the rooms list or as start/end
+		// Vérifie que le lien relie bien deux salles qui existent
 		for _, roomstr := range datas.Rooms {
 			if strings.Fields(roomstr)[0] == left || strings.Fields(datas.Start)[0] == left || strings.Fields(datas.End)[0] == left {
 				leftExist = true
@@ -84,8 +82,7 @@ func checkLinks(datas *modules.Datas) {
 	}
 }
 
-// checkRoomFormat checks if a room line is valid (3 fields, last two are integers).
-// Returns an error string if invalid, or empty string if valid.
+// Vérifie que le string est bien au format "Nom X Y"
 func checkRoomFormat(line string) string {
 	parts := strings.Fields(line)
 	if len(parts) != 3 {
@@ -99,10 +96,10 @@ func checkRoomFormat(line string) string {
 	return ""
 }
 
-// checkDuplicates checks for duplicate room names in datas.Rooms, Start, and End.
-// Adds errors for any duplicates found.
+// Vérifie qu'aucune salle n'est définie deux fois.
 func checkDuplicates(datas *modules.Datas) {
 	var duplicatesIndex []int
+	// Vérification pour les salles randoms
 	for i, room := range datas.Rooms {
 		roompart := strings.Fields(room)
 		for j, comparative := range datas.Rooms {
@@ -114,14 +111,13 @@ func checkDuplicates(datas *modules.Datas) {
 				}
 			}
 		}
-		// Check for duplicates with start room
+		// Vérifie que le start/end, stocké à part, ne soit pas un doublon de la salle étudié
 		if datas.Start != "" {
 			startroom := strings.Fields(datas.Start)[0]
 			if roompart[0] == startroom {
 				datas.Errors = append(datas.Errors, errors.New("Duplicate for rooms "+room+" and "+datas.Start))
 			}
 		}
-		// Check for duplicates with end room
 		if datas.End != "" {
 			endroom := strings.Fields(datas.End)[0]
 			if roompart[0] == endroom {
