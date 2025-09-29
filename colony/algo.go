@@ -47,11 +47,11 @@ func FindAllPaths(room *modules.Room, exit *modules.Room, currentPath []*modules
 // Vérifie si un chemin A est inclus dans un chemin B, le rendant inutile
 func isRedundant(pathA, pathB []*modules.Room) bool {
 	set := make(map[string]bool)
-	for _, room := range pathB[1 : len(pathB)-1] {
+	for _, room := range pathA[1 : len(pathA)-1] {
 		set[room.Name] = true
 	}
 
-	for _, room := range pathA[1 : len(pathA)-1] {
+	for _, room := range pathB[1 : len(pathB)-1] {
 		if !set[room.Name] {
 			return false
 		}
@@ -85,7 +85,7 @@ func IndepPaths(paths [][]*modules.Room) [][][]*modules.Room {
 	var allSets [][][]*modules.Room
 
 	var explore func(current [][]*modules.Room, start int)
-	// explore est une fonction récursive qui va construire les combinaisons et les ajouter à allSets lorsqu'elles sont terminées
+	// Explore est une fonction récursive qui va construire les combinaisons et les ajouter à allSets lorsqu'elles sont terminées
 	// Elle est imbriquée dans IndepPaths pour simplifier la gestion de ses arguments.
 	explore = func(current [][]*modules.Room, start int) {
 		canExtend := false
