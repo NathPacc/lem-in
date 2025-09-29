@@ -9,26 +9,28 @@ import (
 )
 
 func FindAllPaths(room *modules.Room, exit *modules.Room, currentPath []*modules.Room) [][]*modules.Room {
+	// Copie le chemin emprunter jusqu'à la salle actuelle pour gérer correctement les modifications de slices.
+	copyPath := append([]*modules.Room{}, currentPath...)
 	// On ajoute la salle actuelle
-	currentPath = append(currentPath, room)
+	copyPath = append(copyPath, room)
 
 	// Stock tous les chemins valides reliant cette salle à la sortie
 	var allPaths [][]*modules.Room
 
 	// Si la salle actuelle est la sortie, on ajoute le chemin qu'on a emprunter pour l'atteindre
 	if room == exit {
-		allPaths = append(allPaths, currentPath)
+		allPaths = append(allPaths, copyPath)
 		return allPaths
 	}
 
 	// Pour chaque voisin de notre salle
 	for _, neighbour := range room.Neighbours {
 		// Si la salle a déjà été visitée, on l'ignore (sinon on tourne en rond)
-		if slices.Contains(currentPath, neighbour) {
+		if slices.Contains(copyPath, neighbour) {
 			continue
 		}
 		// On récupère récursivement tous les chemins qui relient ce voisin à la sortie
-		subPaths := FindAllPaths(neighbour, exit, currentPath)
+		subPaths := FindAllPaths(neighbour, exit, copyPath)
 		// Si aucun chemin ne relie ce voisin à la sortie, on ignore cette direction (gestion des impasses)
 		if subPaths == nil {
 			continue
@@ -36,12 +38,10 @@ func FindAllPaths(room *modules.Room, exit *modules.Room, currentPath []*modules
 		// Ajoute tous les chemins qui ont atteins la sortie depuis cette salle
 		// !!! subPaths peut vous induire en erreur !!!
 		// !!! Lorsque l'on atteint le exit, la fonction renvoie le chemin depuis le tout début !!!
-		// !!! En effet, on append currentPath à chaque fois qu'on arrive à exit, mais currentPath est le chemin réalisé jusqu'à maintenant !!!
+		// !!! En effet, on append copyPath à chaque fois qu'on arrive à exit, mais copyPath est le chemin réalisé jusqu'à maintenant !!!
 		// !!! En résumé, subPath renvoie tous les chemins qui atteignent la fin en ayant le même début !!!
 		allPaths = append(allPaths, subPaths...)
 	}
-	// On restaure currentPath à l'étape précédente
-	currentPath = currentPath[:len(currentPath)-1]
 	return allPaths
 }
 
@@ -208,9 +208,6 @@ func calculateTime(nbAnt int, paths [][]*modules.Room) (int, []int) {
 // Calcule le temps de résolution de toutes les combinaisons d'une colonie et renvoie la plus rapide
 func Resolve(nbAnt int, colony []*modules.Room) [][]*modules.Room {
 	paths := OptimizePaths(FindAllPaths(colony[0], colony[len(colony)-1], nil))
-	for _, p := range paths {
-		PrintPath(p)
-	}
 	indepPaths := IndepPaths(paths)
 	bestset := indepPaths[0]
 	// On initialise le meilleur temps
