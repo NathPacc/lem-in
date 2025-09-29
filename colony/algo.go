@@ -5,31 +5,30 @@ import (
 	"lem-in/modules"
 	"slices"
 	"sort"
+	"strings"
 )
 
 func FindAllPaths(room *modules.Room, exit *modules.Room, currentPath []*modules.Room) [][]*modules.Room {
-	// Copie le chemin emprunter jusqu'à la salle actuelle pour gérer correctement les modifications de slices.
-	copyPath := append([]*modules.Room{}, currentPath...)
 	// On ajoute la salle actuelle
-	copyPath = append(copyPath, room)
+	currentPath = append(currentPath, room)
 
 	// Stock tous les chemins valides reliant cette salle à la sortie
 	var allPaths [][]*modules.Room
 
 	// Si la salle actuelle est la sortie, on ajoute le chemin qu'on a emprunter pour l'atteindre
 	if room == exit {
-		allPaths = append(allPaths, copyPath)
+		allPaths = append(allPaths, currentPath)
 		return allPaths
 	}
 
 	// Pour chaque voisin de notre salle
 	for _, neighbour := range room.Neighbours {
 		// Si la salle a déjà été visitée, on l'ignore (sinon on tourne en rond)
-		if slices.Contains(copyPath, neighbour) {
+		if slices.Contains(currentPath, neighbour) {
 			continue
 		}
 		// On récupère récursivement tous les chemins qui relient ce voisin à la sortie
-		subPaths := FindAllPaths(neighbour, exit, copyPath)
+		subPaths := FindAllPaths(neighbour, exit, currentPath)
 		// Si aucun chemin ne relie ce voisin à la sortie, on ignore cette direction (gestion des impasses)
 		if subPaths == nil {
 			continue
@@ -37,27 +36,32 @@ func FindAllPaths(room *modules.Room, exit *modules.Room, currentPath []*modules
 		// Ajoute tous les chemins qui ont atteins la sortie depuis cette salle
 		// !!! subPaths peut vous induire en erreur !!!
 		// !!! Lorsque l'on atteint le exit, la fonction renvoie le chemin depuis le tout début !!!
-		// !!! En effet, on append copyPath à chaque fois qu'on arrive à exit, mais copyPath est le chemin réalisé jusqu'à maintenant !!!
+		// !!! En effet, on append currentPath à chaque fois qu'on arrive à exit, mais currentPath est le chemin réalisé jusqu'à maintenant !!!
 		// !!! En résumé, subPath renvoie tous les chemins qui atteignent la fin en ayant le même début !!!
 		allPaths = append(allPaths, subPaths...)
 	}
+	// On restaure currentPath à l'étape précédente
+	currentPath = currentPath[:len(currentPath)-1]
 	return allPaths
 }
 
-// Vérifie si un chemin A est inclus dans un chemin B, le rendant inutile
 func isRedundant(pathA, pathB []*modules.Room) bool {
-	set := make(map[string]bool)
+	if len(pathA) == 2 || len(pathB) == 2 {
+		return false
+	}
+	if len(pathB) >= len(pathA) {
+		return false
+	}
+	set := make(map[string]bool, len(pathA))
 	for _, room := range pathA[1 : len(pathA)-1] {
 		set[room.Name] = true
 	}
-
 	for _, room := range pathB[1 : len(pathB)-1] {
 		if !set[room.Name] {
 			return false
 		}
 	}
-
-	return len(pathA) > len(pathB)
+	return true
 }
 
 // Élimine les chemins "redondants", c'est à dire tous les chemins incluant un chemin valide (ex : A -> B -> C est redondant avec A -> C)
@@ -84,6 +88,9 @@ func OptimizePaths(paths [][]*modules.Room) [][]*modules.Room {
 func IndepPaths(paths [][]*modules.Room) [][][]*modules.Room {
 	var allSets [][][]*modules.Room
 
+	// On génère une clé pour chaque groupe de chemin pour l'identifier efficacement quelque soit l'ordre au sein de ce dernier
+	seen := make(map[string]bool)
+
 	var explore func(current [][]*modules.Room, start int)
 	// Explore est une fonction récursive qui va construire les combinaisons et les ajouter à allSets lorsqu'elles sont terminées
 	// Elle est imbriquée dans IndepPaths pour simplifier la gestion de ses arguments.
@@ -107,17 +114,13 @@ func IndepPaths(paths [][]*modules.Room) [][][]*modules.Room {
 			}
 		}
 
-		// Le dernier tour du for n'a pas trouvé de chemin compatible donc canExtand est false
-		// La combinaison ne peut plus être étendu, on regarde si il n'existe pas déjà dans notre liste
+		// Le dernier tour du for n'a pas trouvé de chemin compatible donc canExtend est false
+		// La combinaison ne peut plus être étendue, on regarde si elle n'existe pas déjà dans notre liste
+		// Pour cela, on utilise les clés de chaque chemins
 		if !canExtend && len(current) > 0 {
-			duplicate := false
-			for _, existing := range allSets {
-				if sameSet(existing, current) {
-					duplicate = true
-					break
-				}
-			}
-			if !duplicate {
+			key := pathSetKey(current)
+			if !seen[key] {
+				seen[key] = true
 				allSets = append(allSets, append([][]*modules.Room{}, current...))
 			}
 		}
@@ -147,45 +150,17 @@ func areIndep(pathA, pathB []*modules.Room) bool {
 	return true
 }
 
-// Vérifie que deux combinaisons ne contiennent pas les mêmes chemins (pour éviter les doublons dont les chemins sont dans un ordre différent)
-func sameSet(a, b [][]*modules.Room) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	used := make([]bool, len(b))
-
-	for _, pathA := range a {
-		found := false
-		for i, pathB := range b {
-			if used[i] {
-				continue
-			}
-			if samePath(pathA, pathB) {
-				used[i] = true
-				found = true
-				break
-			}
+func pathSetKey(paths [][]*modules.Room) string {
+	var keys []string
+	for _, p := range paths {
+		var names []string
+		for _, r := range p {
+			names = append(names, r.Name)
 		}
-		if !found {
-			return false
-		}
+		keys = append(keys, strings.Join(names, "-"))
 	}
-
-	return true
-}
-
-// Vérifie que deux chemins ne soient pas identiques.
-func samePath(a, b []*modules.Room) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].Name != b[i].Name {
-			return false
-		}
-	}
-	return true
+	sort.Strings(keys) // ordre canonique
+	return strings.Join(keys, "|")
 }
 
 // Calcule le temps de résolution d'une combinaison de chemins
@@ -233,6 +208,9 @@ func calculateTime(nbAnt int, paths [][]*modules.Room) (int, []int) {
 // Calcule le temps de résolution de toutes les combinaisons d'une colonie et renvoie la plus rapide
 func Resolve(nbAnt int, colony []*modules.Room) [][]*modules.Room {
 	paths := OptimizePaths(FindAllPaths(colony[0], colony[len(colony)-1], nil))
+	for _, p := range paths {
+		PrintPath(p)
+	}
 	indepPaths := IndepPaths(paths)
 	bestset := indepPaths[0]
 	// On initialise le meilleur temps
