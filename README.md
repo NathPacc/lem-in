@@ -20,23 +20,27 @@ The program follows a multi-step algorithm:
 
 ```
 LEM-IN/
-├── colony/               # Heart of the program
-│   ├── algo.go           # Main algorithm
-│   ├── prints.go         # Printing the different structs and the resolution
-│   └── setup.go          # Initializing datas and creating the colony
+├── cmd/                         # Mains
+│   ├── lem-in/                  
+│   │      └── lem-in.go         # Main of the principal program
+│   ├── visualizer/              
+│   │      └── visualizer.go     # Main of the visualization
+├── colony/                      # Heart of the program
+│   ├── algo.go                  # Main algorithm
+│   ├── prints.go                # Printing the different structs and the resolution
+│   └── setup.go                 # Initializing datas and creating the colony
 │
-├── datas/                # Dealing with the recovering and verification of the datas 
-│   ├── datas.go          # Recovering the datas
-│   └── errors.go         # Verifying the datas
+├── datas/                       # Dealing with the recovering and verification of the datas 
+│   ├── datas.go                 # Recovering the datas
+│   └── errors.go                # Verifying the datas
 │
-├── files/                # Entry files describing the colony
+├── files/                       # Entry files describing the colony
 │
 ├── modules/              
-│   └── structColony.go   # Declaration of structs used by algo
-│   └── modules.go        # Declaration of structs used for data recovering
+│   └── structColony.go          # Declaration of structs used by algo
+│   └── modules.go               # Declaration of structs used for data recovering
 │
 ├── go.mod                 
-├── main.go               # Execution of the program
 └── README.md             
 ```
 
@@ -78,7 +82,13 @@ start-queen               #Link beetween rooms start and queen
 queen-hello_world         #Link beetween rooms queen and hello_world
 ```
 
-Once the file is correctly placed, type "./lem-in yourfile.txt in your terminal.
+**Compilation:**
+
+To use this program, it is necessary to compile it. For that, type "go build -o lem-in ./cmd/lem-in" and "go build -o visualizer ./cmd/visualizer" if you wish to use the visualizer option.
+
+**Command:**
+
+Once the file is correctly placed, type "./lem-in yourfile.txt" in your terminal. If you wish to use the visualizer, type "./lem-in yourfile.txt | ./visualizer".
 
 ### Results
 

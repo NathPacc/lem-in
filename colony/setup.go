@@ -11,6 +11,8 @@ import (
 func addLink(room1, room2 *modules.Room) {
 	if !containsRoom(room1.Neighbours, room2) {
 		room1.Neighbours = append(room1.Neighbours, room2)
+	}
+	if !containsRoom(room2.Neighbours, room1) {
 		room2.Neighbours = append(room2.Neighbours, room1)
 	}
 }
